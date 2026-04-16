@@ -10,12 +10,26 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const res = await API.post("/auth/login", form);
+
+      // 🔥 save user
       localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      // 🔥 redirect to dashboard
       navigate("/dashboard");
+
     } catch (err) {
-      alert("Invalid email or password ❌");
+      console.log(err);
+
+      // 🔥 better error handling
+      if (err.response) {
+        alert(err.response.data.message || "Login failed ❌");
+      } else {
+        alert("Server error ❌");
+      }
+
     } finally {
       setLoading(false);
     }
@@ -34,7 +48,9 @@ export default function Login() {
         <div className="auth-tabs">
           <button className="auth-tab active">Login</button>
           <Link to="/register" style={{ flex: 1, textDecoration: "none" }}>
-            <button className="auth-tab" style={{ width: "100%" }}>Register</button>
+            <button className="auth-tab" style={{ width: "100%" }}>
+              Register
+            </button>
           </Link>
         </div>
 
@@ -46,7 +62,10 @@ export default function Login() {
               type="email"
               placeholder="you@example.com"
               required
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              value={form.email}   // 🔥 added
+              onChange={(e) =>
+                setForm({ ...form, email: e.target.value })
+              }
             />
           </div>
 
@@ -56,7 +75,10 @@ export default function Login() {
               type="password"
               placeholder="••••••••"
               required
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              value={form.password}   // 🔥 added
+              onChange={(e) =>
+                setForm({ ...form, password: e.target.value })
+              }
             />
           </div>
 
@@ -64,6 +86,11 @@ export default function Login() {
             {loading ? "Logging in..." : "Login →"}
           </button>
         </form>
+
+        {/* Extra UX */}
+        <p style={{ textAlign: "center", marginTop: "12px", fontSize: "0.8rem", color: "#9ca3af" }}>
+          Use your registered email & password
+        </p>
 
         <p style={{ textAlign: "center", marginTop: "16px", fontSize: "0.85rem", color: "var(--muted)" }}>
           Don't have an account?{" "}

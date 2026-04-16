@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { Routes, Route } from "react-router-dom"
 
 import Navbar from './components/Navbar'
@@ -10,7 +10,6 @@ import Feedback from './components/Feedback'
 import Contact from './components/Contact'
 import Footer from './components/Footer'
 import OfflineBanner from './components/OfflineBanner'
-import Auth from './components/Auth'
 
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -19,7 +18,6 @@ import TouristDashboard from './pages/TouristDashboard'
 import './App.css'
 
 function App() {
-  const [authModal, setAuthModal] = useState(null)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'dark')
@@ -39,14 +37,13 @@ function App() {
   return (
     <>
       <OfflineBanner />
-      {authModal && <Auth mode={authModal} setAuthModal={setAuthModal} />}
 
       <Routes>
         <Route path="/" element={
           <>
-            <Navbar setAuthModal={setAuthModal} />
+            <Navbar />
             <main>
-              <Hero setAuthModal={setAuthModal} />
+              <Hero />
               <Features />
               <HowItWorks />
               <AboutUs />
@@ -56,8 +53,9 @@ function App() {
             <Footer />
           </>
         } />
-        <Route path="/login"     element={<Login />} />
-        <Route path="/register"  element={<Register />} />
+
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<TouristDashboard />} />
       </Routes>
     </>

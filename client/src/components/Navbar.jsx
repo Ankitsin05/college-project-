@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from "react-router-dom"
 
-export default function Navbar({ setAuthModal }) {
+export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem("user"))
@@ -32,7 +32,7 @@ export default function Navbar({ setAuthModal }) {
 
       {/* Brand */}
       <div
-        onClick={() => scrollTo('home')}
+        onClick={() => navigate("/")}
         style={{
           display: 'flex', alignItems: 'center', gap: '10px',
           cursor: 'pointer', userSelect: 'none'
@@ -82,8 +82,9 @@ export default function Navbar({ setAuthModal }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         {!user ? (
           <>
+            {/* 🔥 FIXED */}
             <button
-              onClick={() => setAuthModal('login')}
+              onClick={() => navigate("/login")}
               style={{
                 padding: '8px 18px',
                 background: 'transparent',
@@ -92,21 +93,13 @@ export default function Navbar({ setAuthModal }) {
                 borderRadius: '8px',
                 fontSize: '0.84rem', fontWeight: 600,
                 cursor: 'pointer',
-                fontFamily: "'Syne', sans-serif",
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => {
-                e.target.style.borderColor = 'white'
-                e.target.style.color = 'white'
-              }}
-              onMouseLeave={e => {
-                e.target.style.borderColor = 'rgba(255,255,255,0.25)'
-                e.target.style.color = 'rgba(255,255,255,0.8)'
+                fontFamily: "'Syne', sans-serif"
               }}
             >Login</button>
 
+            {/* 🔥 FIXED */}
             <button
-              onClick={() => setAuthModal('register')}
+              onClick={() => navigate("/register")}
               style={{
                 padding: '8px 18px',
                 background: '#e8401c',
@@ -115,11 +108,8 @@ export default function Navbar({ setAuthModal }) {
                 borderRadius: '8px',
                 fontSize: '0.84rem', fontWeight: 600,
                 cursor: 'pointer',
-                fontFamily: "'Syne', sans-serif",
-                transition: 'opacity 0.2s'
+                fontFamily: "'Syne', sans-serif"
               }}
-              onMouseEnter={e => e.target.style.opacity = '0.85'}
-              onMouseLeave={e => e.target.style.opacity = '1'}
             >Register</button>
           </>
         ) : (
@@ -179,27 +169,25 @@ export default function Navbar({ setAuthModal }) {
               }}
             >{l.label}</button>
           ))}
+
           {!user && (
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
               <button
-                onClick={() => { setAuthModal('login'); setMenuOpen(false) }}
+                onClick={() => { navigate("/login"); setMenuOpen(false) }}
                 style={{
                   flex: 1, padding: '10px',
                   background: 'transparent',
                   border: '1px solid rgba(255,255,255,0.25)',
-                  color: 'white', borderRadius: '8px',
-                  fontSize: '0.9rem', fontWeight: 600,
-                  cursor: 'pointer'
+                  color: 'white', borderRadius: '8px'
                 }}
               >Login</button>
+
               <button
-                onClick={() => { setAuthModal('register'); setMenuOpen(false) }}
+                onClick={() => { navigate("/register"); setMenuOpen(false) }}
                 style={{
                   flex: 1, padding: '10px',
                   background: '#e8401c', border: 'none',
-                  color: 'white', borderRadius: '8px',
-                  fontSize: '0.9rem', fontWeight: 600,
-                  cursor: 'pointer'
+                  color: 'white', borderRadius: '8px'
                 }}
               >Register</button>
             </div>

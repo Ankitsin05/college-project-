@@ -63,8 +63,7 @@ export default function AboutUs() {
             display: 'flex', gap: '2rem',
             marginTop: '1.5rem', flexWrap: 'wrap'
           }}>
-            {[
-              { num: 'MERN', label: 'Tech Stack' },
+            {[,
               { num: 'AI', label: 'Powered' },
               { num: '24/7', label: 'Monitoring' },
             ].map((s, i) => (
@@ -161,11 +160,11 @@ export default function AboutUs() {
                 color: '#93c5fd', fontWeight: 700,
                 fontSize: '0.88rem',
                 fontFamily: "'Syne', sans-serif"
-              }}>W3 Schools Full Stack Training Project</div>
+              }}>welcome to our all users </div>
               <div style={{
                 color: 'rgba(255,255,255,0.4)',
                 fontSize: '0.76rem', marginTop: '3px'
-              }}>Presented to CEO & Directors — April 2026</div>
+              }}>with whole hearteadly</div>
             </div>
           </div>
         </div>

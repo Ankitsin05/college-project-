@@ -17,6 +17,8 @@ import TouristDashboard from './pages/TouristDashboard'
 
 import './App.css'
 
+import VerifyUser from "./pages/VerifyUser";
+
 function App() {
 
   useEffect(() => {
@@ -57,6 +59,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<TouristDashboard />} />
+        <Route path="/verify/:id" element={<VerifyUser />} />
       </Routes>
     </>
   )

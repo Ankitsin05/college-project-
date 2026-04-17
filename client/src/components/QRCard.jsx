@@ -5,9 +5,15 @@ export default function QRCard() {
 
   if (!user) return <p>No user</p>;
 
+  const qrData = JSON.stringify({
+    id: user._id,
+    name: user.name,
+    email: user.email,
+  });
+
   return (
-    <div className="qr-box">
-      <QRCodeCanvas value={user._id} size={180} />
+    <div>
+      <QRCodeCanvas value={qrData} size={180} />
     </div>
   );
 }

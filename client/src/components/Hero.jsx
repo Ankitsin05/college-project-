@@ -1,4 +1,8 @@
+import { useNavigate } from "react-router-dom";
+
 export default function Hero({ setAuthModal }) {
+  const navigate = useNavigate(); // ✅ ADD
+
   return (
     <section className="hero" id="home">
       <div className="hero-content">
@@ -16,9 +20,14 @@ export default function Hero({ setAuthModal }) {
         </p>
 
         <div className="hero-btns">
-          <button className="btn-primary" onClick={() => setAuthModal('register')}>
+          {/* ✅ FIX HERE */}
+          <button
+            className="btn-primary"
+            onClick={() => navigate("/register")}
+          >
             🚀 Get Started
           </button>
+
           <a href="#features" className="btn-outline-hero">
             ▼ Explore Features
           </a>
@@ -40,7 +49,7 @@ export default function Hero({ setAuthModal }) {
         </div>
       </div>
 
-      {/* Live Map Card — visible on large screens */}
+      {/* Live Map Card */}
       <div className="hero-visual">
         <div className="map-card">
           <div className="map-header">
@@ -73,5 +82,5 @@ export default function Hero({ setAuthModal }) {
         </div>
       </div>
     </section>
-  )
+  );
 }

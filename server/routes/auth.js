@@ -3,31 +3,20 @@ import Tourist from "../models/Tourist.js";
 
 const router = express.Router();
 
-// Register
-router.post("/register", async (req, res) => {
-  try {
-    const user = new Tourist(req.body);
-    await user.save();
-    res.json({ message: "User registered ✅" });
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
-// Login
+// LOGIN
 router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
   try {
-    const user = await Tourist.findOne({ email: req.body.email });
+    const user = await Tourist.findOne({ email, password });
 
-    if (!user) return res.status(404).json({ msg: "User not found" });
-
-    if (user.password !== req.body.password) {
-      return res.status(400).json({ msg: "Wrong password" });
+    if (!user) {
+      return res.status(400).json({ msg: "Invalid credentials" });
     }
 
-    res.json({ message: "Login success ✅", user });
+    res.json({ user });
   } catch (err) {
-    res.status(500).json(err);
+    res.status(500).json({ error: err.message });
   }
 });
 

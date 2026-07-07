@@ -5,14 +5,15 @@ export default function QRCard() {
 
   if (!user) return <p>No user</p>;
 
-  const qrData = JSON.stringify({
-    id: user._id,
-    name: user.name,
-    email: user.email,
-  });
+  // ✅ SPACE hata diya + correct URL
+  const qrData = `http://192.168.1.8:5173/authority/${user?._id}`;
+
+  // ✅ correct console
+  console.log("QR ID:", user?._id);
+  console.log("QR URL:", qrData);
 
   return (
-    <div>
+    <div className="qr-box">
       <QRCodeCanvas value={qrData} size={180} />
     </div>
   );

@@ -4,6 +4,7 @@ import App from "./App";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import "./App.css";   // 🔥 YE LINE ADD KARO
+import "leaflet/dist/leaflet.css"; // 🔥 YE LINE ADD KARO
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>

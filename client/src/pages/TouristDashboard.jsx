@@ -3,8 +3,27 @@ import API from "../api";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 
+// ✅ FIX 1 — getDistance function define karo
+const getDistance = (lat1, lng1, lat2, lng2) => {
+  const R = 6371000; // meters
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+// ✅ FIX 2 — dangerZones define karo
+const dangerZones = [
+  { lat: 27.5, lng: 94.1, radius: 500 },
+  { lat: 26.8, lng: 93.5, radius: 500 },
+];
+
 export default function TouristDashboard() {
-   const [coords, setCoords] = useState(null);
+  const [coords, setCoords] = useState(null);
   const user = JSON.parse(localStorage.getItem("user"));
   const navigate = useNavigate();
 
@@ -14,60 +33,132 @@ export default function TouristDashboard() {
   const [showMapFull, setShowMapFull] = useState(false);
   const [safetyScore, setSafetyScore] = useState(100);
   const [tapCount, setTapCount] = useState(0);
+  const alertCooldown = useRef(0);
+  const autoSOSCooldown = useRef(0);
   const [emergencyContacts] = useState(["xxxxxxxxxxx", "xxxxxxxxxxxx"]);
-const [alarmAudio, setAlarmAudio] = useState(null);
+  const alertedRef = useRef(false);
+  const [alarmAudio, setAlarmAudio] = useState(null);
+  const [isDanger, setIsDanger] = useState(false);
+  const[danger,setDanger] = useState(false);
+
+  const checkDanger = async (lat, lng) => {
+    try {
+      const res = await API.post("/location/check-danger", { lat, lng });
+      setIsDanger(res.data.danger ? true : false);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const triggerAlert = () => {
+    const now = Date.now();
+    if (now - alertCooldown.current < 10000) {
+      console.log("⏳ Alert cooldown");
+      return;
+    }
+    alertCooldown.current = now;
+    playAlarm();
+    console.log("🚨 ALERT TRIGGERED");
+  };
+
   // 📍 LIVE LOCATION TRACKING
- useEffect(() => {
-  const interval = setInterval(() => {
+  useEffect(() => {
+    // ✅ Pehli baar turant location lo
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const c = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-        };
-
+        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCoords(c);
         setLocation(c);
-
-        console.log("📍 New location:", c);
-
+        console.log("📍 First location:", c);
         try {
           await API.post("/location/update", {
-            userId: user?._id,
-            location: c,
-            time: new Date(),
+            userId: user?._id, location: c, time: new Date(),
           });
-          console.log("✅ location sent");
         } catch (err) {
-          console.log("❌ location send failed");
+          console.log("❌ API error:", err);
         }
       },
-      (err) => console.log("Location error:", err)
+      (err) => console.log("❌ Location error:", err),
+      { enableHighAccuracy: true }
     );
-  }, 15000); // 🔥 हर 15 सेकंड
 
-  return () => clearInterval(interval);
-}, []);
+    // ✅ Phir har 15 sec mein update karo
+    const interval = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          setCoords(c);
+          setLocation(c);
+          console.log("📍 New location:", c);
+          try {
+            await API.post("/location/update", {
+              userId: user?._id, location: c, time: new Date(),
+            });
+            const dangerRes = await API.post("/location/check-danger", {
+               lat: c.lat,
+                   lng: c.lng
+                     });
+
+setDanger(dangerRes.data.danger);
+            console.log("✅ location sent");
+          } catch (err) {
+            console.log("❌ API error:", err);
+          }
+        },
+        (err) => console.log("❌ Location error:", err)
+      );
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // 🛡️ SAFETY SCORE
   useEffect(() => {
     if (!location) return;
     let score = 100;
+
     const hour = new Date().getHours();
     if (hour >= 20 || hour <= 6) score -= 20;
-    const dangerZones = [
+
+    const scoreZones = [
       { lat: 27.5, lng: 94.1 },
       { lat: 26.8, lng: 93.5 },
     ];
-    dangerZones.forEach(zone => {
-      const dist = Math.sqrt(
-        Math.pow(location.lat - zone.lat, 2) +
-        Math.pow(location.lng - zone.lng, 2)
-      );
-      if (dist < 0.1) score -= 30;
+
+    scoreZones.forEach(zone => {
+      const dist = getDistance(location.lat, location.lng, zone.lat, zone.lng);
+      if (dist < 1000) score -= 30;
     });
+
     score = Math.max(0, Math.min(100, score));
     setSafetyScore(score);
+  }, [location]);
+
+  // 🚨 DANGER ZONE CHECK
+  useEffect(() => {
+    if (!location) return;
+
+    for (let zone of dangerZones) {
+      const dist = getDistance(location.lat, location.lng, zone.lat, zone.lng);
+
+      if (dist < (zone.radius || 200) && !alertedRef.current) {
+        alertedRef.current = true;
+        console.log("🚨 ENTERED DANGER ZONE");
+        alert("⚠️ You are entering a dangerous area!");
+        setSafetyScore(prev => Math.max(prev - 30, 0));
+        triggerAlert();
+        handleAutoSOS();
+        API.post("/location/danger", {
+          userId: user?._id,
+          lat: location.lat,
+          lng: location.lng,
+        }).catch(() => console.log("❌ danger log failed"));
+      }
+
+      if (dist > ((zone.radius || 200) + 50)) {
+        alertedRef.current = false;
+      }
+    }
   }, [location]);
 
   // 🔕 SILENT SOS — 3 taps
@@ -120,14 +211,15 @@ const [alarmAudio, setAlarmAudio] = useState(null);
     return () => window.removeEventListener("devicemotion", handleMotion);
   }, [location]);
 
-  // 🔥 AUTO SLIDE
+  // ✅ FIX 3 — Auto slide sirf location aane ke baad
   useEffect(() => {
+    if (!location) return;
     const timer = setTimeout(() => {
       setScreen(1);
-      setShowMapFull(true);
-    }, 3000);
+      // ✅ setShowMapFull NAHI karenge — black screen fix
+    }, 2000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [location]);
 
   // 👆 SILENT TAP
   const handleHiddenTap = () => {
@@ -135,94 +227,65 @@ const [alarmAudio, setAlarmAudio] = useState(null);
     setTimeout(() => setTapCount(0), 2000);
   };
 
-  // 🔊 ALARM FUNCTION
-const playAlarm = () => {
-  const audio = new Audio("/siren.mp3");
-  audio.loop = true;
+  // 🔊 ALARM
+  const playAlarm = () => {
+    const audio = new Audio("/siren.mp3");
+    audio.loop = true;
+    audio.play().catch(err => console.log("Audio blocked:", err));
+    setAlarmAudio(audio);
+  };
 
-  audio.play().catch(err => {
-    console.log("Audio blocked:", err);
-  });
-
-  setAlarmAudio(audio);
-};
-
-// ⛔ STOP ALARM (optional)
-const stopAlarm = () => {
-  if (alarmAudio) {
-    alarmAudio.pause();
-    alarmAudio.currentTime = 0;
-  }
-};
-
-// 📩 SMS FUNCTION
-const sendSMS = () => {
-  if (!coords) {
-    alert("Location not ready ❌");
-    return;
-  }
-
-  const message = `🚨 SOS ALERT!
-I am in danger.
-Location: https://maps.google.com/?q=${coords.lat},${coords.lng}`;
-
-  window.location.href = `sms:${emergencyContacts[0]}?body=${encodeURIComponent(message)}`;
-};
-
-// 📞 CALL FUNCTION
-const makeCall = () => {
-
-  window.location.href = `tel:${emergencyContacts[0]}`;
-};
-
-  // 🚨 FULL SOS — Offline + Contacts
-  const handleSOS = async () => {
-     const now = Date.now();
-
-  if (now - lastSOS.current < 10000) {
-    console.log("⏳ Wait before sending SOS again");
-    return;
-  }
-
-  lastSOS.current = now;
-
-  console.log("🚨 FULL SOS TRIGGERED");
-
-  // 🔊 Alarm
-  playAlarm();
-
-  // 📞 Call
-  makeCall();
+  const stopAlarm = () => {
+    if (alarmAudio) {
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
+    }
+  };
 
   // 📩 SMS
-  sendSMS();
+  const sendSMS = () => {
+    if (!coords) { alert("Location not ready ❌"); return; }
+    const message = `🚨 SOS ALERT!\nI am in danger.\nLocation: https://maps.google.com/?q=${coords.lat},${coords.lng}`;
+    window.location.href = `sms:${emergencyContacts[0]}?body=${encodeURIComponent(message)}`;
+  };
 
-  try {
-    if (!location?.lat) {
-      console.log("❌ Location not available");
+  // 📞 CALL
+  const makeCall = () => {
+    window.location.href = `tel:${emergencyContacts[0]}`;
+  };
+
+  // 🚨 MAIN SOS
+  const handleSOS = async () => {
+    if (!location) return;
+
+    const now = Date.now();
+    if (now - autoSOSCooldown.current < 20000) {
+      console.log("⏳ Auto SOS cooldown");
       return;
     }
+    autoSOSCooldown.current = now;
+    console.log("🚨 FULL SOS TRIGGERED");
 
-    await API.post("/emergency/sos", {
-      userId: user?._id || "testUser",
-      location: {
-        lat: location.lat,
-        lng: location.lng,
-      },
-    });
+    playAlarm();
+    makeCall();
+    sendSMS();
 
-    console.log("🚨 SOS saved to DB");
-  } catch (err) {
-    console.log("❌ SOS DB error:", err);
-  }
-};
+    try {
+      if (!location?.lat) return;
+      await API.post("/emergency/sos", {
+        userId: user?._id || "testUser",
+        location: { lat: location.lat, lng: location.lng },
+      });
+      console.log("🚨 SOS saved to DB");
+    } catch (err) {
+      console.log("❌ SOS DB error:", err);
+    }
+  };
 
-  // 🚨 AUTO SOS — Shake + Tap
+  // 🚨 AUTO SOS
   const handleAutoSOS = async () => {
-    if (!location) {
-      alert("Location not available ❌");
-      return;
-    }
+    if (!location) { alert("Location not available ❌"); return; }
+
     const payload = {
       userId: user?._id,
       lat: location.lat,
@@ -244,9 +307,7 @@ const makeCall = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      emergencyContacts.forEach(num => {
-        console.log(`📞 Alert sent to ${num}`);
-      });
+      emergencyContacts.forEach(num => console.log(`📞 Alert sent to ${num}`));
       alert("🚨 SOS Sent + Contacts Alerted");
     } catch (err) {
       alert("Failed to send SOS ❌");
@@ -254,24 +315,20 @@ const makeCall = () => {
   };
 
   // 📞 FAKE CALL
- const triggerFakeCall = async () => {
-  alert("📞 Incoming Call: Police Helpline");
+  const triggerFakeCall = async () => {
+    alert("📞 Incoming Call: Police Helpline");
+    const audio = new Audio("/ring.mp3");
+    try {
+      await audio.play();
+    } catch (err) {
+      console.log("Audio blocked:", err);
+    }
+    setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }, 8000);
+  };
 
-  const audio = new Audio("/ring.mp3");
-
-  try {
-    await audio.play();
-  } catch (err) {
-    console.log("Audio blocked:", err);
-  }
-
-  setTimeout(() => {
-    audio.pause();
-    audio.currentTime = 0;
-  }, 8000);
-};
-
-  // 🗺️ LOGOUT
   const handleLogout = () => {
     localStorage.removeItem("user");
     navigate("/login");
@@ -347,6 +404,25 @@ const makeCall = () => {
             Your Digital Tourist ID is ready
           </p>
         </div>
+        {danger && (
+          <div style={{
+            background: "rgba(239, 68, 68, 0.1)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "10px", padding: "10px 16px",
+            display: "flex", alignItems: "center",
+            gap: "10px", marginBottom: "24px"
+          }}>
+            <div style={{
+              width: "8px", height: "8px",
+              background: "#ef4444", borderRadius: "50%",
+              animation: "pulse 1.5s infinite"
+            }}/>
+            <span style={{ color: "#f87171", fontSize: "0.84rem" }}>
+              You are in a dangerous area!
+            </span>
+          </div>
+        )}
+
 
         {/* Status Badge */}
         <div style={{
@@ -358,7 +434,8 @@ const makeCall = () => {
         }}>
           <div style={{
             width: "8px", height: "8px",
-            background: "#22c55e", borderRadius: "50%"
+            background: "#22c55e", borderRadius: "50%",
+            animation: "pulse 1.5s infinite"
           }}/>
           <span style={{ color: "#4ade80", fontSize: "0.84rem" }}>
             Active & Verified Tourist
@@ -378,7 +455,7 @@ const makeCall = () => {
               borderRadius: "16px", padding: "20px",
               display: "flex", flexDirection: "column", alignItems: "center"
             }}>
-              <QRCard />
+              <QRCard  userId={user?._id}/>
               <p style={{ marginTop: "12px", color: "#374151", fontWeight: 700 }}>
                 {user?.name}
               </p>
@@ -387,19 +464,31 @@ const makeCall = () => {
               </p>
             </div>
 
-            {/* Map Slide */}
+            {/* ✅ FIX — Map Slide */}
             <div style={{
-              width: "100%", background: "#000",
-              borderRadius: "16px", overflow: "hidden"
+              width: "100%", background: "#0a1628",
+              borderRadius: "16px", overflow: "hidden",
+              minHeight: "220px",
+              display: "flex", alignItems: "center", justifyContent: "center"
             }}>
               {location ? (
                 <iframe
+                  key={`${location.lat}-${location.lng}`}
                   width="100%" height="220"
-                  style={{ border: 0 }} loading="lazy" allowFullScreen
+                  style={{ border: 0, display: "block" }}
+                  loading="lazy" allowFullScreen
                   src={`https://maps.google.com/maps?q=${location.lat},${location.lng}&z=15&output=embed`}
                 />
               ) : (
-                <p style={{ color: "white", padding: "20px" }}>Loading Map...</p>
+                <div style={{
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", gap: "12px", padding: "20px"
+                }}>
+                  <div style={{ fontSize: "2rem" }}>📍</div>
+                  <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "0.85rem" }}>
+                    Getting your location...
+                  </p>
+                </div>
               )}
             </div>
           </div>
@@ -456,11 +545,12 @@ const makeCall = () => {
             color: "white", border: "none", borderRadius: "14px",
             fontWeight: "bold", marginBottom: "12px",
             fontSize: "1rem", cursor: "pointer",
-            fontFamily: "'Syne', sans-serif", letterSpacing: "0.05em"
+            fontFamily: "'Syne', sans-serif", letterSpacing: "0.05em",
+            boxShadow: "0 8px 24px rgba(255,0,0,0.3)"
           }}
         >🚨 SEND SOS ALERT</button>
 
-        {/* 📞 FAKE CALL BUTTON */}
+        {/* 📞 FAKE CALL */}
         <button
           onClick={triggerFakeCall}
           style={{
@@ -510,7 +600,6 @@ const makeCall = () => {
             fontFamily: "'DM Sans', sans-serif"
           }}
         >Logout →</button>
-
       </div>
     </div>
   );

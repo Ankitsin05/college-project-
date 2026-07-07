@@ -6,20 +6,20 @@ export default function Register() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+const handleRegister = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await API.post("/auth/register", form);
-      navigate("/login");
-    } catch (err) {
-      alert("Error registering ❌");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  try {
+    await API.post("/auth/register", form); // ✅ FIXED
+    navigate("/login");
+  } catch (err) {
+    console.log("ERROR ", err.response?.data || err.message);
+    alert("Error registering ❌");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="auth-container">
       <div className="auth-modal" style={{ position: "relative", margin: "auto" }}>

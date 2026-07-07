@@ -4,10 +4,6 @@ const locationSchema = new mongoose.Schema({
   userId: String,
   lat: Number,
   lng: Number,
-  time: {
-    type: Date,
-    default: Date.now,
-  },
-});
+}, { timestamps: true }); // ✅ important
 
 export default mongoose.model("Location", locationSchema);

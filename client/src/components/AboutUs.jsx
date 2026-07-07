@@ -1,8 +1,5 @@
 const team = [
-  { init: 'AS', name: 'Ankit Sinha',     role: 'Full Stack Developer', color: '#1d4ed8' },
-  { init: 'AP', name: 'Ashutosh Pandey', role: 'UI & Presentation',    color: '#7c3aed' },
-  { init: 'AR', name: 'Aryan Singh',     role: 'Research & Demo',      color: '#0f766e' },
-  { init: 'PS', name: 'Praveen Sharma',  role: 'Docs & GitHub',        color: '#b45309' },
+  { init: 'AS', name: 'Ankit Sinha',     role: 'Full Stack Developer', color: '#1d4ed8' }
 ]
 
 export default function AboutUs() {

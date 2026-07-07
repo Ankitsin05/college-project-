@@ -18,6 +18,7 @@ import TouristDashboard from './pages/TouristDashboard'
 import './App.css'
 
 import VerifyUser from "./pages/VerifyUser";
+import AuthorityDashboard from "./pages/AuthorityDashboard";
 
 function App() {
 
@@ -60,6 +61,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<TouristDashboard />} />
         <Route path="/verify/:id" element={<VerifyUser />} />
+         <Route path="/authority" element={<AuthorityDashboard />} />
+        <Route path="/authority/:id" element={<AuthorityDashboard />} />
       </Routes>
     </>
   )

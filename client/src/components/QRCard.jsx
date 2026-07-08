@@ -6,7 +6,7 @@ export default function QRCard() {
   if (!user) return <p>No user</p>;
 
   // ✅ SPACE hata diya + correct URL
-  const qrData = `http://192.168.1.8:5173/authority/${user?._id}`;
+  const qrData = `https://safeyatra-app.vercel.app/authority/${user?._id}`;
 
   // ✅ correct console
   console.log("QR ID:", user?._id);
